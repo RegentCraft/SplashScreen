@@ -1,1 +1,80 @@
+import tkinter as tk
+from tkinter import Label
+from PIL import Image, ImageTk
+from pathlib import Path
+import os
+import platform  # To detect the operating system
+import sys  # To detect if running in PyInstaller bundle
 
+def resource_path(relative_path):
+    # If running in a PyInstaller bundle
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+def close_splash(event=None):
+    root.destroy()
+
+# Function to resize image while keeping the aspect ratio
+def resize_image(image, max_width, max_height):
+    width, height = image.size
+    aspect_ratio = width / height
+    if width > height:
+        new_width = min(max_width, width)
+        new_height = int(new_width / aspect_ratio)
+    else:
+        new_height = min(max_height, height)
+        new_width = int(new_height * aspect_ratio)
+   
+    return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+# Create the main window (root)
+root = tk.Tk()
+
+# Get screen dimensions dynamically
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Set the background color (sand-colored background)
+root.configure(bg='#f4c57a')
+
+# Check if the current OS is Linux
+if platform.system() == "Linux":
+    # On Linux, explicitly set fullscreen with geometry and delay
+    root.attributes('-fullscreen', True)
+    root.geometry(f"{screen_width}x{screen_height}+0+0")
+else:
+    # For other systems (Windows/macOS), use fullscreen and remove decorations
+    root.attributes('-fullscreen', True)
+    root.after(10, lambda: root.overrideredirect(True))
+
+# Use resource_path to locate the image in PyInstaller bundle
+logo_image_path = resource_path("RegentLogo.png")
+
+if Path(logo_image_path).exists():
+    try:
+        logo_image = Image.open(logo_image_path)
+       
+        # Adjusted to make the image bigger (take up half of the screen's width and height)
+        max_image_size = min(screen_width // 2, screen_height // 2)  # Larger dimensions now
+        logo_image = resize_image(logo_image, max_image_size, max_image_size)
+        logo_photo = ImageTk.PhotoImage(logo_image)
+
+        logo_label = Label(root, image=logo_photo, bg='#f4c57a')
+        logo_label.pack(pady=50)
+    except Exception as e:
+        print(f"Error loading image: {e}")
+else:
+    print(f"Image not found at: {logo_image_path}")
+
+confidentiality_message = Label(root, text="Confidentiality Agreement: Unauthorized access or use of this system may result in penalties.",
+                                bg='#f4c57a', font=('Arial', 20), wraplength=screen_width - 100)
+confidentiality_message.pack(pady=50)
+
+exit_message = Label(root, text="Click the mouse or press Enter to dismiss this message.", bg='#f4c57a', font=('Arial', 15))
+exit_message.pack(pady=30)
+
+root.bind("<Button-1>", close_splash)
+root.bind("<Return>", close_splash)
+
+root.mainloop()
